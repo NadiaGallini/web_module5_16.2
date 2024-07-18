@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chat</title>
+  </head>
+  <body>
+    <h1>Chat</h1>
+    <form id="form">
+      <input id="input" type="text" />
+      <button type="submit">Send</button>
+    </form>
+    <ul id="messages" style="list-style-type: none; padding: 10px; margin: 0"></ul>
+    
+    <!-- Подключаем клиентскую библиотеку для socket.io -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+      // Инициализируем объект сокета, подключаясь к серверу
+      const socket = io('http://localhost:3000');
+      
+      // Получаем элемент DOM дерева для добавления сообщений
+      const messages = document.getElementById('messages');
+      
+      // Слушаем событие, которое мы выбрасываем на сервере
+      socket.on('message', (message) => {
+        // Создаем новый html элемент li
+        const messageItem = document.createElement('li');
+        // Заполняем его сообщением
+        messageItem.textContent = message;
+        // Добавляем новый элемент в список
+        messages.appendChild(messageItem);
+      });
+      
+      // Обработка отправки сообщения
+      document.getElementById('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('input');
+        const message = input.value;
+        if (message) {
+          socket.emit('message', message);
+          input.value = '';
+        }
+      });
+    </script>
+  </body>
+</html>
