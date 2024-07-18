@@ -32,15 +32,24 @@ const io = new Server(httpServer, {
 const messages = ['Hello world!', 'New Message'];
 
 io.on('connection', (socket) => {
-  console.log('New client connected');
-  messages.forEach((message) => {
-    socket.emit('message', message);
+    console.log('New client connected');
+    
+    // Отправка старых сообщений новым клиентам
+    messages.forEach((message) => {
+      socket.emit('message', message);
+    });
+  
+    // Обработка новых сообщений от клиентов
+    socket.on('message', (message) => {
+      console.log('Received message:', message);
+      messages.push(message); // Добавляем новое сообщение в массив
+      io.emit('message', message); // Отправляем сообщение всем клиентам
+    });
+  
+    socket.on('disconnect', () => {
+      console.log('Client disconnected');
+    });
   });
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
-});
 
 httpServer.listen(3000, () => {
   console.log('Server is running on http://localhost:3000');
