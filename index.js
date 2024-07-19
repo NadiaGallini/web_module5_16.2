@@ -27,11 +27,18 @@ const io = new Server(httpServer, {
   }
 });
 
-io.on('connection', (socket) => {
-  console.log('New client connected');
+let onlineUsers = 0;
 
+io.on('connection', (socket) => {
+  onlineUsers++;
+  io.emit('updateUserCount', onlineUsers);
+  
+  console.log('New client connected');
+  
   socket.on('joinRoom', (room) => {
     socket.join(room);
+    const roomSize = io.sockets.adapter.rooms.get(room).size;
+    io.to(room).emit('updateRoomUserCount', roomSize);
     console.log(`Client joined room: ${room}`);
   });
 
@@ -41,7 +48,21 @@ io.on('connection', (socket) => {
     io.to(room).emit('message', message);
   });
 
+  socket.on('privateMessage', (data) => {
+    const { to, message } = data;
+    console.log(`Private message from ${socket.id} to ${to}: ${message}`);
+    socket.to(to).emit('privateMessage', { from: socket.id, message });
+  });
+
   socket.on('disconnect', () => {
+    onlineUsers--;
+    io.emit('updateUserCount', onlineUsers);
+
+    socket.rooms.forEach(room => {
+      const roomSize = io.sockets.adapter.rooms.get(room)?.size || 0;
+      io.to(room).emit('updateRoomUserCount', roomSize);
+    });
+    
     console.log('Client disconnected');
   });
 });

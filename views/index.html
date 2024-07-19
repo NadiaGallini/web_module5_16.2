@@ -1,58 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Chat</title>
-  </head>
-  <body>
-    <h1>Chat</h1>
-    <form id="room-form">
-      <input id="room-input" type="text" placeholder="Room name" />
-      <button type="submit">Join Room</button>
-    </form>
-    <form id="message-form" style="display:none;">
-      <input id="message-input" type="text" placeholder="Message" />
-      <button type="submit">Send</button>
-    </form>
-    <ul id="messages" style="list-style-type: none; padding: 10px; margin: 0"></ul>
-    
-    <!-- Подключаем клиентскую библиотеку для socket.io -->
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script>
-      const socket = io('http://localhost:3000');
-      let currentRoom = '';
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat</title>
+</head>
+<body>
+  <h1>Chat</h1>
+  
+  <div id="user-info">
+    <p>Global Users Online: <span id="global-users">0</span></p>
+    <p>Room Users Online: <span id="room-users">0</span></p>
+  </div>
+  
+  <form id="room-form">
+    <input id="room-input" type="text" placeholder="Room name" />
+    <button type="submit">Join Room</button>
+  </form>
+  
+  <form id="message-form" style="display:none;">
+    <input id="message-input" type="text" placeholder="Message" />
+    <button type="submit">Send</button>
+  </form>
+  
+  <form id="private-message-form" style="display:none;">
+    <input id="private-to" type="text" placeholder="User ID" />
+    <input id="private-message-input" type="text" placeholder="Private Message" />
+    <button type="submit">Send Private</button>
+  </form>
+  
+  <ul id="messages" style="list-style-type: none; padding: 10px; margin: 0"></ul>
+  
+  <!-- Подключаем клиентскую библиотеку для socket.io -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://localhost:3000');
+    let currentRoom = '';
 
-      const roomForm = document.getElementById('room-form');
-      const roomInput = document.getElementById('room-input');
-      const messageForm = document.getElementById('message-form');
-      const messageInput = document.getElementById('message-input');
-      const messages = document.getElementById('messages');
+    const globalUsers = document.getElementById('global-users');
+    const roomUsers = document.getElementById('room-users');
+    const roomForm = document.getElementById('room-form');
+    const roomInput = document.getElementById('room-input');
+    const messageForm = document.getElementById('message-form');
+    const privateMessageForm = document.getElementById('private-message-form');
+    const messageInput = document.getElementById('message-input');
+    const privateTo = document.getElementById('private-to');
+    const privateMessageInput = document.getElementById('private-message-input');
+    const messages = document.getElementById('messages');
 
-      roomForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const room = roomInput.value.trim();
-        if (room) {
-          currentRoom = room;
-          socket.emit('joinRoom', room);
-          messageForm.style.display = 'block';
-          roomForm.style.display = 'none';
-        }
-      });
+    roomForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const room = roomInput.value.trim();
+      if (room) {
+        currentRoom = room;
+        socket.emit('joinRoom', room);
+        messageForm.style.display = 'block';
+        privateMessageForm.style.display = 'block';
+        roomForm.style.display = 'none';
+      }
+    });
 
-      messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const message = messageInput.value.trim();
-        if (message && currentRoom) {
-          socket.emit('message', { room: currentRoom, message });
-          messageInput.value = '';
-        }
-      });
+    messageForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      if (message && currentRoom) {
+        socket.emit('message', { room: currentRoom, message });
+        messageInput.value = '';
+      }
+    });
 
-      socket.on('message', (message) => {
-        const messageItem = document.createElement('li');
-        messageItem.textContent = message;
-        messages.appendChild(messageItem);
-      });
-    </script>
-  </body>
+    privateMessageForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const to = privateTo.value.trim();
+      const message = privateMessageInput.value.trim();
+      if (to && message) {
+        socket.emit('privateMessage', { to, message });
+        privateMessageInput.value = '';
+      }
+    });
+
+    socket.on('message', (message) => {
+      const messageItem = document.createElement('li');
+      messageItem.textContent = message;
+      messages.appendChild(messageItem);
+    });
+
+    socket.on('privateMessage', (data) => {
+      const { from, message } = data;
+      const messageItem = document.createElement('li');
+      messageItem.textContent = `Private from ${from}: ${message}`;
+      messages.appendChild(messageItem);
+    });
+
+    socket.on('updateUserCount', (count) => {
+      globalUsers.textContent = count;
+    });
+
+    socket.on('updateRoomUserCount', (count) => {
+      roomUsers.textContent = count;
+    });
+  </script>
+</body>
 </html>
