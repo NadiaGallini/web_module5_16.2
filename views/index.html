@@ -6,8 +6,12 @@
   </head>
   <body>
     <h1>Chat</h1>
-    <form id="form">
-      <input id="input" type="text" />
+    <form id="room-form">
+      <input id="room-input" type="text" placeholder="Room name" />
+      <button type="submit">Join Room</button>
+    </form>
+    <form id="message-form" style="display:none;">
+      <input id="message-input" type="text" placeholder="Message" />
       <button type="submit">Send</button>
     </form>
     <ul id="messages" style="list-style-type: none; padding: 10px; margin: 0"></ul>
@@ -15,31 +19,39 @@
     <!-- Подключаем клиентскую библиотеку для socket.io -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
-      // Инициализируем объект сокета, подключаясь к серверу
       const socket = io('http://localhost:3000');
-      
-      // Получаем элемент DOM дерева для добавления сообщений
+      let currentRoom = '';
+
+      const roomForm = document.getElementById('room-form');
+      const roomInput = document.getElementById('room-input');
+      const messageForm = document.getElementById('message-form');
+      const messageInput = document.getElementById('message-input');
       const messages = document.getElementById('messages');
-      
-      // Слушаем событие, которое мы выбрасываем на сервере
-      socket.on('message', (message) => {
-        // Создаем новый html элемент li
-        const messageItem = document.createElement('li');
-        // Заполняем его сообщением
-        messageItem.textContent = message;
-        // Добавляем новый элемент в список
-        messages.appendChild(messageItem);
-      });
-      
-      // Обработка отправки сообщения
-      document.getElementById('form').addEventListener('submit', (e) => {
+
+      roomForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const input = document.getElementById('input');
-        const message = input.value;
-        if (message) {
-          socket.emit('message', message);
-          input.value = '';
+        const room = roomInput.value.trim();
+        if (room) {
+          currentRoom = room;
+          socket.emit('joinRoom', room);
+          messageForm.style.display = 'block';
+          roomForm.style.display = 'none';
         }
+      });
+
+      messageForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (message && currentRoom) {
+          socket.emit('message', { room: currentRoom, message });
+          messageInput.value = '';
+        }
+      });
+
+      socket.on('message', (message) => {
+        const messageItem = document.createElement('li');
+        messageItem.textContent = message;
+        messages.appendChild(messageItem);
       });
     </script>
   </body>
